@@ -16,6 +16,8 @@ set :port, LOCAL_PORT
 bandwidth_client = Bandwidth::Client.new(
     messaging_basic_auth_user_name: BW_USERNAME,
     messaging_basic_auth_password: BW_PASSWORD
+    # environment: Environment::CUSTOM, #Optional - Used for custom base URLs
+    # base_url: "https://d6979da481772c167be0edcd10eb64d7.m.pipedream.net" #Optional - Custom base URL set here
 )
 messaging_client = bandwidth_client.messaging_client.client
 
@@ -23,15 +25,30 @@ account_id = BW_ACCOUNT_ID
 
 post '/callbacks/outbound/messaging' do
     #Make a post request to this url to send outbound MMS with media
-
+    data = JSON.parse(request.body.read)
     body = MessageRequest.new
-    body.application_id = account_id
+    body.application_id = BW_MESSAGING_APPLICATION_ID
     body.to = [data["to"]]
     body.from = BW_NUMBER
     body.text = data["text"]
     body.media = ["https://cdn2.thecatapi.com/images/MTY3ODIyMQ.jpg"]
 
     messaging_client.create_message(account_id, body)
+    return ''
+end
+
+post '/callbacks/outbound/messaging/status' do
+    data = JSON.parse(request.body.read)
+    case data[0]["type"] 
+        when "message-sending"
+            puts "message-sending type is only for MMS"
+        when "message-delivered"
+            puts "your message has been handed off to the Bandwidth's MMSC network, but has not been confirmed at the downstream carrier"
+        when "message-failed"
+            puts "For MMS and Group Messages, you will only receive this callback if you have enabled delivery receipts on MMS."
+        else
+            puts "Message type does not match endpoint. This endpoint is used for message status callbacks only."
+        end
     return ''
 end
 
@@ -46,7 +63,9 @@ post '/callbacks/inbound/messaging' do
             data[0]["message"]["media"].each do |media|
                 media_id = media.split("/").last(3)
                 downloaded_media = messaging_client.get_media(account_id, media_id).data
-                puts downloaded_media
+                img_file = File.new("./image.jpg", "w")
+                img_file.puts(downloaded_media)
+                img_file.close
             end
         end
     else
@@ -55,17 +74,3 @@ post '/callbacks/inbound/messaging' do
 
     return ''
 end
-puts "test"
-# post '/mediaManagement' do
-#     #Make a POST request to this endpoint to upload a media file to Bandwidth, then download it
-#     #and print its contents
-#     media = "simple text string"
-#     media_id = "bandwidth-sample-app"
-
-#     messaging_client.upload_media(account_id, media_id, media.length.to_s, media, :content_type => "application/octet-stream", :cache_control => "no-cache")
-
-#     downloaded_media = messaging_client.get_media(account_id, media_id).data
-#     puts downloaded_media
-
-#     return ''
-# end

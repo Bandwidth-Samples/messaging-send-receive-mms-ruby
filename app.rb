@@ -55,7 +55,7 @@ post '/callbacks/inbound/messaging' do
 
     return ''
 end
-
+puts "test"
 # post '/mediaManagement' do
 #     #Make a POST request to this endpoint to upload a media file to Bandwidth, then download it
 #     #and print its contents

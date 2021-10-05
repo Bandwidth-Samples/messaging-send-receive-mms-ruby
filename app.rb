@@ -24,7 +24,7 @@ messaging_client = bandwidth_client.messaging_client.client
 account_id = BW_ACCOUNT_ID
 
 post '/callbacks/outbound/messaging' do
-    #Make a post request to this url to send outbound MMS with media
+    #Create and send a message when someone POSTs to this endpoint
     data = JSON.parse(request.body.read)
     body = MessageRequest.new
     body.application_id = BW_MESSAGING_APPLICATION_ID
@@ -38,6 +38,7 @@ post '/callbacks/outbound/messaging' do
 end
 
 post '/callbacks/outbound/messaging/status' do
+#Create a callback endpoint to receive status updates on sent messages
     data = JSON.parse(request.body.read)
     case data[0]["type"] 
         when "message-sending"
@@ -53,7 +54,7 @@ post '/callbacks/outbound/messaging/status' do
 end
 
 post '/callbacks/inbound/messaging' do
-    #This URL handles inbound messages.
+    #Create a callback endpoint to receive inbound messages
     #If the inbound message contains media, that media is downloaded
     data = JSON.parse(request.body.read)
     if data[0]["type"] == "message-received"

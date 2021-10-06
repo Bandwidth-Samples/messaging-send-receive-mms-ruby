@@ -63,10 +63,16 @@ post '/callbacks/inbound/messaging' do
         if data[0]["message"].key?("media")
             data[0]["message"]["media"].each do |media|
                 media_id = media.split("/").last(3)
-                downloaded_media = messaging_client.get_media(account_id, media_id).data
-                img_file = File.new("./image.jpg", "w")
-                img_file.puts(downloaded_media)
-                img_file.close
+                if media_id.last.include? ".xml"
+
+                else
+                  filename = "./image." + media_id.last.partition('.').last()
+                  downloaded_media = messaging_client.get_media(account_id, media_id).data
+                  img_file = File.new("./image.jpg", "w")
+                  img_file.puts(downloaded_media)
+                  img_file.close
+                end
+                
             end
         end
     else

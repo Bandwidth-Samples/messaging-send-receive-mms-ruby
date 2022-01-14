@@ -20,7 +20,7 @@ end
 $api_instance_msg = RubySdk::MessagesApi.new()  # replace with new module name************
 $api_instance_media = RubySdk::MediaApi.new()   # replace with new module name************
 
-post '/sendMessage' do  # Make a POST request to this URL to send a text message
+post '/sendMessage' do  # Make a POST request to this URL to send a text message.
     data = JSON.parse(request.body.read)
     body = MessageRequest.new
     body.application_id = BW_MESSAGING_APPLICATION_ID

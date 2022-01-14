@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'openapi_ruby_sdk' # replace with new gem name************
+require 'openapi_ruby_sdk_binary' # replace with new gem name************
 
 include RubySdk # replace with new module name**************
 
@@ -50,7 +50,7 @@ post '/callbacks/outbound/messaging/status' do  # This URL handles outbound mess
 end
 
 post '/callbacks/inbound/messaging' do  # This URL handles inbound message callbacks.
-    data = JSON.parse(request.body.read,:symbolize_names => true)
+    data = JSON.parse(request.body.read, :symbolize_names => true)
     inbound_body = BandwidthCallbackMessage.new.build_from_hash(data[0])
     puts inbound_body.description
     if inbound_body.type == "message-received"
@@ -58,15 +58,13 @@ post '/callbacks/inbound/messaging' do  # This URL handles inbound message callb
         if !inbound_body.message.media.nil?
             inbound_body.message.media.each do |media|
                 media_id = media.partition("media/").last   # media id used for GET media
-                media_name = media.split("/").last(3).last  # used for naming the downloaded image file
+                media_name = media_id.rpartition("/").last  # used for naming the downloaded image file
                 if media_name.include? ".xml"
 
                 else
                   filename = "./" + media_name
-                  downloaded_media = $api_instance_media.get_media(BW_ACCOUNT_ID, media_id, debug_return_type: 'String')    # needs to be updated to return Binary 
-                  img_file = File.new(filename, "w")
-                  img_file.puts(downloaded_media)
-                  img_file.close
+                  downloaded_media = $api_instance_media.get_media(BW_ACCOUNT_ID, media_id, debug_return_type: 'Binary')
+                  File.open(filename, 'wb') { |f| f.write(downloaded_media) }
                 end
                 
             end

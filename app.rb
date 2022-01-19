@@ -59,12 +59,10 @@ post '/callbacks/inbound/messaging' do  # This URL handles inbound message callb
             inbound_body.message.media.each do |media|
                 media_id = media.partition("media/").last   # media id used for GET media
                 media_name = media_id.rpartition("/").last  # used for naming the downloaded image file
-                if media_name.include? ".xml"
-
-                else
-                  filename = "./" + media_name
-                  downloaded_media = $api_instance_media.get_media(BW_ACCOUNT_ID, media_id, debug_return_type: 'Binary')
-                  File.open(filename, 'wb') { |f| f.write(downloaded_media) }
+                unless media_name.include? ".xml"
+                    filename = "./" + media_name
+                    downloaded_media = $api_instance_media.get_media(BW_ACCOUNT_ID, media_id, debug_return_type: 'Binary')
+                    File.open(filename, 'wb') { |f| f.write(downloaded_media) }                  
                 end
                 
             end

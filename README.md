@@ -15,16 +15,16 @@
 
 # Description
 
-Using a tool capable of making POST requests such as [Postman](https://www.postman.com/), send a `POST` request to the `/sendMessage` endpoint with a json body such as:
+Using a tool capable of making POST requests such as [Postman](https://www.postman.com/), send a `POST` request to the `/sendMessage` endpoint with a json body containing the `to` and `text` fields. The `to` field should be an array of E.164 formatted phone numbers to send the SMS to.
 
 ```json
 {
-  "to": "+19195551234",
-  "text":"Hello World!"
+  "to": ["+19195551234"],
+  "text": "Hello World!"
 }
 ```
 
-The application will text the number `+19195551234` a picture of a cat and the words `Hello World!`.
+The example above will text the number `+19195551234` a picture of a cat and the words `Hello World!`.
 
 The other two endpoints are used for handling inbound and outbound webhooks from Bandwidth. In order to use the correct endpoints, you must check the "Use multiple callback URLs" box on the application page in Dashboard. Then in Dashboard, set the INBOUND CALLBACK to `/callbacks/inbound/messaging` and the STATUS CALLBACK to `/callbacks/outbound/messaging/status`. The same can be accomplished via the Dashboard API by setting InboundCallbackUrl and OutboundCallbackUrl respectively.
 

@@ -23,8 +23,8 @@ post '/sendMessage' do # Make a POST request to this URL to send a text message.
   body.from = BW_NUMBER
   body.media = ['https://cdn2.thecatapi.com/images/MTY3ODIyMQ.jpg']
 
-  api_instance_msg = Bandwidth::MessagesApi.new
-  api_instance_msg.create_message(BW_ACCOUNT_ID, body)
+  messaging_api_instance = Bandwidth::MessagesApi.new
+  messaging_api_instance.create_message(BW_ACCOUNT_ID, body)
 end
 
 post '/callbacks/outbound/messaging/status' do # This URL handles outbound message status callbacks.
@@ -48,14 +48,14 @@ post '/callbacks/inbound/messaging' do # This URL handles inbound message callba
   if inbound_body.type == 'message-received'
     puts "To: #{inbound_body.message.to[0]}\nFrom: #{inbound_body.message.from}\nText: #{inbound_body.message.text}"
 
-    api_instance_media = Bandwidth::MediaApi.new
+    media_api_instance = Bandwidth::MediaApi.new
     inbound_body.message.media&.each do |media|
       media_id = media.partition('media/').last # media id used for GET media
       media_name = media_id.rpartition('/').last # used for naming the downloaded image file
       next if media_name.include? '.xml'
 
       filename = "./#{media_name}"
-      downloaded_media = api_instance_media.get_media(BW_ACCOUNT_ID, media_id)
+      downloaded_media = media_api_instance.get_media(BW_ACCOUNT_ID, media_id)
       File.open(filename, 'wb') { |f| f.write(downloaded_media) }
     end
   else

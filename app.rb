@@ -7,7 +7,7 @@ begin
   BW_PASSWORD = ENV.fetch('BW_PASSWORD')
   BW_NUMBER = ENV.fetch('BW_NUMBER')
   BW_MESSAGING_APPLICATION_ID = ENV.fetch('BW_MESSAGING_APPLICATION_ID')
-LOCAL_PORT = ENV.fetch('LOCAL_PORT')
+  LOCAL_PORT = ENV.fetch('LOCAL_PORT')
 rescue StandardError
   puts 'Please set the environmental variables defined in the README'
   exit(-1)

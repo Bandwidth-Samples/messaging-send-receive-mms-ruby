@@ -40,20 +40,20 @@ post '/callbacks/outbound/messaging/status' do # This URL handles outbound messa
   data = JSON.parse(request.body.read)
   case data[0]['type']
   when 'message-sending'
-    p 'MMS message is sending.'
+    puts 'MMS message is sending.'
   when 'message-delivered'
-    p "Your message has been handed off to the Bandwidth's MMSC network, but has not been confirmed at the downstream carrier."
+    puts "Your message has been handed off to the Bandwidth's MMSC network, but has not been confirmed at the downstream carrier."
   when 'message-failed'
-    p 'For MMS and Group Messages, you will only receive this callback if you have enabled delivery receipts on MMS.'
+    puts 'For MMS and Group Messages, you will only receive this callback if you have enabled delivery receipts on MMS.'
   else
-    p 'Message type does not match endpoint. This endpoint is used for message status callbacks only.'
+    puts 'Message type does not match endpoint. This endpoint is used for message status callbacks only.'
   end
 end
 
 post '/callbacks/inbound/messaging' do # This URL handles inbound message callbacks.
   data = JSON.parse(request.body.read)
   inbound_body = Bandwidth::InboundMessageCallback.build_from_hash(data[0])
-  p inbound_body.description
+  puts inbound_body.description
   if inbound_body.type == 'message-received'
     puts "To: #{inbound_body.message.to[0]}\nFrom: #{inbound_body.message.from}\nText: #{inbound_body.message.text}"
 
@@ -68,7 +68,7 @@ post '/callbacks/inbound/messaging' do # This URL handles inbound message callba
       File.open(filename, 'wb') { |f| f.write(downloaded_media) }
     end
   else
-    p 'Message type does not match endpoint. This endpoint is used for inbound messages only.'
-    p 'Outbound message callbacks should be sent to /callbacks/outbound/messaging.'
+    puts 'Message type does not match endpoint. This endpoint is used for inbound messages only.'
+    puts 'Outbound message callbacks should be sent to /callbacks/outbound/messaging.'
   end
 end

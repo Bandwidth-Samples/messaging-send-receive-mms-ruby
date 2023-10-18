@@ -1,83 +1,74 @@
 require 'sinatra'
-require 'bandwidth'
+require 'bandwidth-sdk'
 
-include Bandwidth
-include Bandwidth::Messaging
-
-BW_USERNAME = ENV.fetch("BW_USERNAME")
-BW_PASSWORD = ENV.fetch("BW_PASSWORD")
-BW_NUMBER = ENV.fetch("BW_NUMBER")
-BW_MESSAGING_APPLICATION_ID = ENV.fetch("BW_MESSAGING_APPLICATION_ID")
-BW_ACCOUNT_ID = ENV.fetch("BW_ACCOUNT_ID")
-LOCAL_PORT = ENV.fetch("LOCAL_PORT")
+begin
+  BW_ACCOUNT_ID = ENV.fetch('BW_ACCOUNT_ID')
+  BW_USERNAME = ENV.fetch('BW_USERNAME')
+  BW_PASSWORD = ENV.fetch('BW_PASSWORD')
+  BW_NUMBER = ENV.fetch('BW_NUMBER')
+  BW_MESSAGING_APPLICATION_ID = ENV.fetch('BW_MESSAGING_APPLICATION_ID')
+  LOCAL_PORT = ENV.fetch('LOCAL_PORT')
+rescue StandardError
+  puts 'Please set the environmental variables defined in the README'
+  exit(-1)
+end
 
 set :port, LOCAL_PORT
 
-bandwidth_client = Bandwidth::Client.new(
-    messaging_basic_auth_user_name: BW_USERNAME,
-    messaging_basic_auth_password: BW_PASSWORD
-    # environment: Environment::CUSTOM, #Optional - Used for custom base URLs
-    # base_url: "https://d6979da481772c167be0edcd10eb64d7.m.pipedream.net" #Optional - Custom base URL set here
-)
-messaging_client = bandwidth_client.messaging_client.client
-
-account_id = BW_ACCOUNT_ID
-
-post '/callbacks/outbound/messaging' do
-    #Create and send a message when someone POSTs to this endpoint
-    data = JSON.parse(request.body.read)
-    body = MessageRequest.new
-    body.application_id = BW_MESSAGING_APPLICATION_ID
-    body.to = [data["to"]]
-    body.from = BW_NUMBER
-    body.text = data["text"]
-    body.media = ["https://cdn2.thecatapi.com/images/MTY3ODIyMQ.jpg"]
-
-    messaging_client.create_message(account_id, body)
-    return ''
+Bandwidth.configure do |config| # Configure Basic Auth
+  config.return_binary_data = true
+  config.username = BW_USERNAME
+  config.password = BW_PASSWORD
 end
 
-post '/callbacks/outbound/messaging/status' do
-#Create a callback endpoint to receive status updates on sent messages
-    data = JSON.parse(request.body.read)
-    case data[0]["type"] 
-        when "message-sending"
-            puts "message-sending type is only for MMS"
-        when "message-delivered"
-            puts "your message has been handed off to the Bandwidth's MMSC network, but has not been confirmed at the downstream carrier"
-        when "message-failed"
-            puts "For MMS and Group Messages, you will only receive this callback if you have enabled delivery receipts on MMS."
-        else
-            puts "Message type does not match endpoint. This endpoint is used for message status callbacks only."
-        end
-    return ''
+post '/sendMessage' do # Make a POST request to this URL to send a text message.
+  data = JSON.parse(request.body.read)
+  body = Bandwidth::MessageRequest.new(
+    {
+      application_id: BW_MESSAGING_APPLICATION_ID,
+      from: BW_NUMBER,
+      media: ['https://cdn2.thecatapi.com/images/MTY3ODIyMQ.jpg'],
+      **data
+    }
+  )
+
+  messaging_api_instance = Bandwidth::MessagesApi.new
+  messaging_api_instance.create_message(BW_ACCOUNT_ID, body)
 end
 
-post '/callbacks/inbound/messaging' do
-    #Create a callback endpoint to receive inbound messages
-    #If the inbound message contains media, that media is downloaded
-    data = JSON.parse(request.body.read)
-    if data[0]["type"] == "message-received"
-        puts "Message received"
-        puts "To: " + data[0]["message"]["to"][0] + "\nFrom: " + data[0]["message"]["from"] + "\nText: " + data[0]["message"]["text"]
-        if data[0]["message"].key?("media")
-            data[0]["message"]["media"].each do |media|
-                media_id = media.split("/").last(3)
-                if media_id.last.include? ".xml"
+post '/callbacks/outbound/messaging/status' do # This URL handles outbound message status callbacks.
+  data = JSON.parse(request.body.read)
+  case data[0]['type']
+  when 'message-sending'
+    puts 'MMS message is sending.'
+  when 'message-delivered'
+    puts "Your message has been handed off to the Bandwidth's MMSC network, but has not been confirmed at the downstream carrier."
+  when 'message-failed'
+    puts 'For MMS and Group Messages, you will only receive this callback if you have enabled delivery receipts on MMS.'
+  else
+    puts 'Message type does not match endpoint. This endpoint is used for message status callbacks only.'
+  end
+end
 
-                else
-                  filename = "./image." + media_id.last.partition('.').last()
-                  downloaded_media = messaging_client.get_media(account_id, media_id).data
-                  img_file = File.new("./image.jpg", "w")
-                  img_file.puts(downloaded_media)
-                  img_file.close
-                end
-                
-            end
-        end
-    else
-        puts "Message type does not match endpoint. This endpoint is used for inbound messages only.\nOutbound message callbacks should be sent to /callbacks/outbound/messaging."
+post '/callbacks/inbound/messaging' do # This URL handles inbound message callbacks.
+  data = JSON.parse(request.body.read)
+  inbound_body = Bandwidth::InboundMessageCallback.build_from_hash(data[0])
+  puts inbound_body.description
+  if inbound_body.type == 'message-received'
+    puts "To: #{inbound_body.message.to[0]}\nFrom: #{inbound_body.message.from}\nText: #{inbound_body.message.text}"
+
+    media_api_instance = Bandwidth::MediaApi.new
+    inbound_body.message.media&.each do |media|
+      media_id = media.partition('media/').last # media id used for GET media
+      media_name = media_id.rpartition('/').last # used for naming the downloaded image file
+      next if media_name.include? '.xml'
+
+      filename = "./#{media_name}"
+      downloaded_media = media_api_instance.get_media(BW_ACCOUNT_ID, media_id)
+      File.open(filename, 'wb') { |f| f.write(downloaded_media) }
     end
-
-    return ''
+  else
+    puts 'Message type does not match endpoint. This endpoint is used for inbound messages only.'
+    puts 'Outbound message callbacks should be sent to /callbacks/outbound/messaging.'
+  end
 end
